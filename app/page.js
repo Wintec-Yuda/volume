@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 export default function Home() {
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
+  const audioRef = useRef(null);
+  const bgmRef = useRef(null);
   const keysRef = useRef({ direction: "RIGHT", nextDirection: "RIGHT" });
 
   const CELL = 28;
@@ -12,6 +14,9 @@ export default function Home() {
   const ROWS = 22;
   const WIDTH = COLS * CELL;
   const HEIGHT = ROWS * CELL;
+
+  const ITEM_COUNT_MIN = 20;
+  const ITEM_COUNT_MAX = 30;
 
   const [ui, setUi] = useState({
     score: 0,
@@ -25,18 +30,101 @@ export default function Home() {
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
   const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
+  const initBgm = () => {
+    if (bgmRef.current) return bgmRef.current;
+
+    const audio = new Audio("/audio/volume-control-loop.mp3");
+    audio.loop = true;
+    audio.volume = 0;
+
+    bgmRef.current = audio;
+    return audio;
+  };
+
+  const playBgm = () => {
+    const audio = initBgm();
+    audio.play().catch(() => {});
+  };
+
+  const pauseBgm = () => {
+    bgmRef.current?.pause();
+  };
+
+  const updateBgmVolume = (volume) => {
+    const audio = initBgm();
+    audio.volume = clamp((volume / 100) * 0.3, 0, 0.3);
+  };
+
+  const initAudio = () => {
+    if (audioRef.current) return audioRef.current;
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioContext();
+
+    const master = ctx.createGain();
+    master.gain.value = 0.18;
+    master.connect(ctx.destination);
+
+    audioRef.current = { ctx, master };
+    return audioRef.current;
+  };
+
+  const playTone = (freq = 440, duration = 0.12, type = "sine", gain = 0.2) => {
+    const audio = initAudio();
+    const now = audio.ctx.currentTime;
+
+    const osc = audio.ctx.createOscillator();
+    const vol = audio.ctx.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+
+    vol.gain.setValueAtTime(gain, now);
+    vol.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc.connect(vol);
+    vol.connect(audio.master);
+
+    osc.start(now);
+    osc.stop(now + duration);
+  };
+
+  const playSfx = (type) => {
+    if (type === "food") {
+      playTone(520, 0.08, "sine", 0.22);
+      setTimeout(() => playTone(760, 0.1, "sine", 0.18), 70);
+    }
+
+    if (type === "poison") {
+      playTone(180, 0.18, "sawtooth", 0.22);
+      setTimeout(() => playTone(90, 0.22, "sawtooth", 0.16), 90);
+    }
+
+    if (type === "pause") {
+      playTone(320, 0.12, "triangle", 0.18);
+    }
+
+    if (type === "resume") {
+      playTone(440, 0.08, "triangle", 0.18);
+      setTimeout(() => playTone(620, 0.1, "triangle", 0.16), 70);
+    }
+
+    if (type === "max") {
+      [523, 659, 784, 1046].forEach((freq, index) => {
+        setTimeout(() => playTone(freq, 0.18, "sine", 0.22), index * 90);
+      });
+    }
+  };
+
   const celebrationConfig = {
-    5: { label: "Nice!", emoji: "✨", count: 14, size: "small" },
-    6: { label: "Great!", emoji: "🎉", count: 22, size: "medium" },
-    7: { label: "Awesome!", emoji: "🌟", count: 32, size: "medium" },
-    8: { label: "Big Bite!", emoji: "🔥", count: 46, size: "large" },
-    9: { label: "Mega Boost!", emoji: "🚀", count: 62, size: "huge" },
-    10: { label: "LEGENDARY!", emoji: "👑", count: 95, size: "legend" },
-    max: { label: "MAX VOLUME!", emoji: "🔊", count: 130, size: "max" },
+    8: { label: "Boost Kuat!", emoji: "🔥", count: 46, size: "large" },
+    9: { label: "Power Naik!", emoji: "🚀", count: 68, size: "huge" },
+    10: { label: "Luar Biasa!", emoji: "👑", count: 95, size: "legend" },
+    max: { label: "VOLUME MAKSIMAL!", emoji: "🔊", count: 150, size: "max" },
   };
 
   const triggerCelebration = (value, type = "food") => {
-    if (value < 5 && type !== "max") return;
+    if (type !== "max" && value < 8) return;
 
     const config =
       type === "max"
@@ -71,9 +159,9 @@ export default function Home() {
       type,
       label:
         type === "max"
-          ? "MAX VOLUME 100!"
+          ? "VOLUME 100! MAKSIMAL!"
           : type === "poison"
-          ? `DANGER -${value}`
+          ? `Racun Besar -${value}`
           : `${config.label} +${value}`,
       emoji: type === "max" ? "🔊" : type === "poison" ? "☠️" : config.emoji,
       size: config.size,
@@ -116,8 +204,8 @@ export default function Home() {
   };
 
   const createItem = (snake, items = [], forcedType = null) => {
-    const type = forcedType || (Math.random() < 0.62 ? "food" : "poison");
-    const value = rand(5, 10);
+    const type = forcedType || (Math.random() < 0.5 ? "food" : "poison");
+    const value = rand(1, 10);
     const pos = randomEmptyCell(snake, items);
 
     return {
@@ -159,6 +247,8 @@ export default function Home() {
   };
 
   const resetGame = () => {
+    pauseBgm();
+
     const snake = [
       { x: 8, y: 10 },
       { x: 7, y: 10 },
@@ -166,8 +256,9 @@ export default function Home() {
     ];
 
     const items = [];
+    const itemCount = rand(ITEM_COUNT_MIN, ITEM_COUNT_MAX);
 
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < itemCount; i++) {
       items.push(createItem(snake, items));
     }
 
@@ -250,6 +341,10 @@ export default function Home() {
       if (map[key]) {
         e.preventDefault();
 
+        initAudio();
+        playBgm();
+        updateBgmVolume(gameRef.current?.volume || 0);
+
         const game = gameRef.current;
         const current = keysRef.current.direction;
         const next = map[key];
@@ -259,6 +354,10 @@ export default function Home() {
         }
 
         if (game?.paused && game?.pauseByItem) {
+          playSfx("resume");
+          playBgm();
+          updateBgmVolume(game.volume);
+
           game.paused = false;
           game.pauseByItem = false;
           game.status = "RESUME";
@@ -273,7 +372,11 @@ export default function Home() {
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      pauseBgm();
+    };
   }, []);
 
   useEffect(() => {
@@ -423,6 +526,8 @@ export default function Home() {
           const py = head.y * CELL + CELL / 2;
 
           if (item.type === "food") {
+            playSfx("food");
+
             game.combo += 1;
 
             const bonus = Math.floor(game.combo / 4);
@@ -430,25 +535,47 @@ export default function Home() {
             const nextVolume = beforeVolume + item.value + bonus;
 
             game.volume = clamp(nextVolume, 0, 100);
-            game.score += item.value * 10 + game.combo * 3;
-            game.status = game.volume >= 100 ? "MAX VOLUME!" : `FOOD +${item.value}`;
+            updateBgmVolume(game.volume);
 
-            if (item.value >= 5) {
+            game.score += item.value * 10 + game.combo * 3;
+            game.status = game.volume >= 100 ? "VOLUME MAKSIMAL!" : `FOOD +${item.value}`;
+
+            if (item.value >= 8) {
               triggerCelebration(item.value, "food");
               spawnParticles(game, px, py, "#34d399", `+${item.value}`);
             }
 
             if (beforeVolume < 100 && game.volume >= 100 && !game.maxCelebrated) {
+              playSfx("max");
+              pauseBgm();
+
               game.maxCelebrated = true;
+              game.paused = true;
+              game.pauseByItem = true;
+              game.status = "VOLUME MAKSIMAL!";
+
               triggerCelebration(10, "max");
-              spawnParticles(game, px, py, "#facc15", "MAX!");
+              spawnParticles(game, px, py, "#facc15", "100!");
+
+              setUi((prev) => ({
+                ...prev,
+                paused: true,
+                status: "VOLUME MAKSIMAL!",
+                score: game.score,
+                volume: game.volume,
+                combo: game.combo,
+              }));
             }
           }
 
           if (item.type === "poison") {
+            playSfx("poison");
+
             game.combo = 0;
             game.maxCelebrated = false;
             game.volume = clamp(game.volume - item.value, 0, 100);
+            updateBgmVolume(game.volume);
+
             game.score = Math.max(0, game.score - item.value * 8);
             game.status = `POISON -${item.value}`;
 
@@ -456,10 +583,13 @@ export default function Home() {
 
             spawnParticles(game, px, py, "#fb7185", `-${item.value}`);
 
-            if (item.value >= 5) triggerCelebration(item.value, "poison");
+            if (item.value >= 8) triggerCelebration(item.value, "poison");
           }
 
           if (item.type === "pause") {
+            playSfx("pause");
+            updateBgmVolume(game.volume);
+
             game.paused = true;
             game.pauseByItem = true;
             game.status = "PAUSED";
@@ -498,10 +628,12 @@ export default function Home() {
         if (sweet) {
           game.score += 3;
           game.speed = 95;
-          game.status = game.volume >= 100 ? "MAX VOLUME!" : "SWEET SPOT!";
+          game.status = game.volume >= 100 ? "VOLUME MAKSIMAL!" : "SWEET SPOT!";
         } else {
           game.speed = 115;
         }
+
+        updateBgmVolume(game.volume);
 
         setUi((prev) => ({
           ...prev,
@@ -593,7 +725,11 @@ export default function Home() {
     };
 
     raf = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      pauseBgm();
+    };
   }, []);
 
   const volumePercent = clamp(ui.volume, 0, 100);
@@ -622,8 +758,6 @@ export default function Home() {
                   ? "border-fuchsia-200 bg-fuchsia-400 text-4xl text-white shadow-fuchsia-400/60"
                   : celebration.size === "large"
                   ? "border-orange-200 bg-orange-400 text-3xl text-white shadow-orange-400/60"
-                  : celebration.size === "medium"
-                  ? "border-cyan-200 bg-cyan-300 text-3xl text-slate-950 shadow-cyan-300/50"
                   : "border-emerald-200 bg-emerald-300 text-2xl text-slate-950 shadow-emerald-300/40"
               }`}
             >
@@ -636,9 +770,7 @@ export default function Home() {
               celebration.size === "max") && (
               <div
                 className={`absolute left-1/2 top-1/2 h-[460px] w-[460px] -translate-x-1/2 -translate-y-1/2 animate-[megaRing_1.5s_ease-out_forwards] rounded-full border-[20px] ${
-                  celebration.type === "poison"
-                    ? "border-red-400/70"
-                    : "border-yellow-300/75"
+                  celebration.type === "poison" ? "border-red-400/70" : "border-yellow-300/75"
                 }`}
               />
             )}
@@ -768,7 +900,8 @@ export default function Home() {
               <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
                 <div className="mb-2 text-sm font-black">Goal</div>
                 <p className="text-sm text-slate-400">
-                  Naikkan volume dengan makanan, turunkan dengan racun, & jaga volume agar enak didengarkan.
+                  Ambil makanan untuk menaikkan volume, ambil racun untuk menurunkannya,
+                  lalu jaga volume tetap sesuai target.
                 </p>
               </div>
             </div>
