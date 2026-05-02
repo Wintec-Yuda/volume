@@ -43,7 +43,7 @@ export default function Home() {
 
   const playBgm = () => {
     const audio = initBgm();
-    audio.play().catch(() => {});
+    audio.play().catch(() => { });
   };
 
   const pauseBgm = () => {
@@ -149,8 +149,8 @@ export default function Home() {
         type === "max"
           ? ["🔊", "🎆", "🎇", "👑", "🏆", "⚡", "🌈"][rand(0, 6)]
           : type === "poison"
-          ? ["💀", "☠️", "🧨", "⚡", "🔥", "🦠"][rand(0, 5)]
-          : [config.emoji, "✨", "🎊", "💫", "⭐", "🌈"][rand(0, 5)],
+            ? ["💀", "☠️", "🧨", "⚡", "🔥", "🦠"][rand(0, 5)]
+            : [config.emoji, "✨", "🎊", "💫", "⭐", "🌈"][rand(0, 5)],
     }));
 
     const celebration = {
@@ -161,8 +161,8 @@ export default function Home() {
         type === "max"
           ? "VOLUME 100! MAKSIMAL!"
           : type === "poison"
-          ? `Racun Besar -${value}`
-          : `${config.label} +${value}`,
+            ? `Racun Besar -${value}`
+            : `${config.label} +${value}`,
       emoji: type === "max" ? "🔊" : type === "poison" ? "☠️" : config.emoji,
       size: config.size,
       particles,
@@ -220,10 +220,10 @@ export default function Home() {
         type === "food"
           ? foodIcons[value - 1]
           : type === "poison"
-          ? poisonIcons[value - 1]
-          : type === "pause"
-          ? "⏸️"
-          : "🔁",
+            ? poisonIcons[value - 1]
+            : type === "pause"
+              ? "⏸️"
+              : "🔁",
       nextMoveAt: performance.now() + rand(5000, 10000),
       pulse: Math.random() * 10,
     };
@@ -407,10 +407,10 @@ export default function Home() {
       const color = isFood
         ? `hsl(${90 + item.value * 12}, 85%, 58%)`
         : isPoison
-        ? `hsl(${360 - item.value * 9}, 90%, 60%)`
-        : isPause
-        ? "#60a5fa"
-        : "#facc15";
+          ? `hsl(${360 - item.value * 9}, 90%, 60%)`
+          : isPause
+            ? "#60a5fa"
+            : "#facc15";
 
       ctx.save();
       ctx.translate(cx, cy);
@@ -547,7 +547,8 @@ export default function Home() {
 
             if (beforeVolume < 100 && game.volume >= 100 && !game.maxCelebrated) {
               playSfx("max");
-              pauseBgm();
+              playBgm();
+              updateBgmVolume(game.volume);
 
               game.maxCelebrated = true;
               game.paused = true;
@@ -657,10 +658,10 @@ export default function Home() {
           game.volume >= 100
             ? "#facc15"
             : game.volume < 35
-            ? "#38bdf8"
-            : game.volume <= 80
-            ? "#34d399"
-            : "#fb7185";
+              ? "#38bdf8"
+              : game.volume <= 80
+                ? "#34d399"
+                : "#fb7185";
 
         ctx.shadowBlur = isHead ? 20 : 8;
         ctx.shadowColor = color;
@@ -747,19 +748,18 @@ export default function Home() {
         {ui.celebrations.map((celebration) => (
           <div key={celebration.id} className="absolute inset-0">
             <div
-              className={`absolute left-1/2 top-14 -translate-x-1/2 animate-[celebrationPop_1.2s_ease-out_forwards] rounded-[2rem] border px-8 py-4 text-center font-black shadow-2xl ${
-                celebration.type === "max"
+              className={`absolute left-1/2 top-14 -translate-x-1/2 animate-[celebrationPop_1.2s_ease-out_forwards] rounded-[2rem] border px-8 py-4 text-center font-black shadow-2xl ${celebration.type === "max"
                   ? "border-yellow-100 bg-gradient-to-r from-yellow-300 via-orange-300 to-fuchsia-400 text-6xl text-slate-950 shadow-yellow-300/80"
                   : celebration.type === "poison"
-                  ? "border-rose-200 bg-rose-500 text-3xl text-white shadow-rose-500/50"
-                  : celebration.size === "legend"
-                  ? "border-yellow-200 bg-yellow-300 text-5xl text-slate-950 shadow-yellow-300/70"
-                  : celebration.size === "huge"
-                  ? "border-fuchsia-200 bg-fuchsia-400 text-4xl text-white shadow-fuchsia-400/60"
-                  : celebration.size === "large"
-                  ? "border-orange-200 bg-orange-400 text-3xl text-white shadow-orange-400/60"
-                  : "border-emerald-200 bg-emerald-300 text-2xl text-slate-950 shadow-emerald-300/40"
-              }`}
+                    ? "border-rose-200 bg-rose-500 text-3xl text-white shadow-rose-500/50"
+                    : celebration.size === "legend"
+                      ? "border-yellow-200 bg-yellow-300 text-5xl text-slate-950 shadow-yellow-300/70"
+                      : celebration.size === "huge"
+                        ? "border-fuchsia-200 bg-fuchsia-400 text-4xl text-white shadow-fuchsia-400/60"
+                        : celebration.size === "large"
+                          ? "border-orange-200 bg-orange-400 text-3xl text-white shadow-orange-400/60"
+                          : "border-emerald-200 bg-emerald-300 text-2xl text-slate-950 shadow-emerald-300/40"
+                }`}
             >
               <div className="text-6xl">{celebration.emoji}</div>
               <div>{celebration.label}</div>
@@ -768,12 +768,11 @@ export default function Home() {
             {(celebration.size === "huge" ||
               celebration.size === "legend" ||
               celebration.size === "max") && (
-              <div
-                className={`absolute left-1/2 top-1/2 h-[460px] w-[460px] -translate-x-1/2 -translate-y-1/2 animate-[megaRing_1.5s_ease-out_forwards] rounded-full border-[20px] ${
-                  celebration.type === "poison" ? "border-red-400/70" : "border-yellow-300/75"
-                }`}
-              />
-            )}
+                <div
+                  className={`absolute left-1/2 top-1/2 h-[460px] w-[460px] -translate-x-1/2 -translate-y-1/2 animate-[megaRing_1.5s_ease-out_forwards] rounded-full border-[20px] ${celebration.type === "poison" ? "border-red-400/70" : "border-yellow-300/75"
+                    }`}
+                />
+              )}
 
             {(celebration.size === "legend" || celebration.size === "max") &&
               celebration.type !== "poison" && (
@@ -861,15 +860,14 @@ export default function Home() {
               <div className="relative h-6 overflow-hidden rounded-full bg-slate-950/70">
                 <div className="absolute left-[65%] top-0 h-full w-[10%] bg-emerald-300/40" />
                 <div
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    ui.volume >= 100
+                  className={`h-full rounded-full transition-all duration-300 ${ui.volume >= 100
                       ? "bg-yellow-300"
                       : sweet
-                      ? "bg-emerald-300"
-                      : volumePercent > 80
-                      ? "bg-rose-400"
-                      : "bg-cyan-300"
-                  }`}
+                        ? "bg-emerald-300"
+                        : volumePercent > 80
+                          ? "bg-rose-400"
+                          : "bg-cyan-300"
+                    }`}
                   style={{ width: `${volumePercent}%` }}
                 />
               </div>
